@@ -3,6 +3,11 @@ from enum import Enum
 class TokenType(Enum):
     NUMBER = "NUMBER"
     PLUS = "PLUS"
+    MINUS = "MINUS"
+    MULT = "MULT"
+    DIVI = "DIVI"
+    LPAR = "LPAR"
+    RPAR = "RPAR"
     EOF = "EOF" #End of life
 
 class Token:
@@ -52,6 +57,26 @@ class Lexer:
                 self.advance()
                 return Token(TokenType.PLUS, "+")
             
+            if self.current_char == "-":
+                self.advance()
+                return Token(TokenType.MINUS, "-")
+            
+            if self.current_char == "*":
+                self.advance()
+                return Token(TokenType.MULT, "*")
+            
+            if self.current_char == "/":
+                self.advance()
+                return Token(TokenType.DIVI, "/")
+            
+            if self.current_char == "(":
+                self.advance()
+                return Token(TokenType.LPAR, "(")
+            
+            if self.current_char == ")":
+                self.advance()
+                return Token(TokenType.RPAR, ")")
+
             raise Exception(f"Unknown character: {self.current_char}")
         
         return Token(TokenType.EOF, None)
