@@ -8,7 +8,18 @@ class TokenType(Enum):
     DIVI = "DIVI"
     LPAR = "LPAR"
     RPAR = "RPAR"
-    EOF = "EOF" #End of life
+
+    IDENTIFIER = "INDENTIFIER"
+    STRING = "STRING"
+    ASSIGN = "ASSIGN"
+
+    IF = "IF"
+    ELSE = "ELSE"
+    FUN = "FUN"
+    WHILE = "WHILE"
+
+    EOF = "EOF" #End of file
+    NEWLINE = "NEWLINE"
 
 class Token:
     def __init__(self, type, value):
@@ -17,6 +28,41 @@ class Token:
     
     def __str__(self):
         return f"Token({self.type}, {self.value})"
+
+class LexerError(Exception):
+    def __init__(self, message: str, line:int, column:int):
+        self.message = message
+        self.line = self
+        self.column = column
+        super().__init__(f"Lexer Error at line {line}, column {column}: {message}")
+
+class Tokenizer:
+    def __init__(self, text:str):
+        self.text = text
+        self.pos = 0
+        self.line = 1
+        self.column = 1
+
+        self.keywords = {
+            "if": TokenType.IF,
+            "else": TokenType.ELSE,
+            "fun": TokenType.FUN,
+            "while": TokenType.WHILE
+        }
+    
+    def error(self, message:str):
+        raise LexerError(message, self.line, self.column)
+    
+    def peek(self, offset: int = 0) -> Optional[str]:
+        peek_pos = self.pos + offset
+
+        if peek_pos >= len(self.text):
+            return None
+        return self.text[peek_pos]
+
+    def advance():
+        
+
 
 class Lexer:
     def __init__(self, text):
