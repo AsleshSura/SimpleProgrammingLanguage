@@ -1,4 +1,8 @@
 from enum import Enum
+from dataclasses import dataclass
+from typing import List, Optional
+import string
+
 
 class TokenType(Enum):
     NUMBER = "NUMBER"
@@ -60,70 +64,146 @@ class Tokenizer:
             return None
         return self.text[peek_pos]
 
-    def advance():
-        
-
-
-class Lexer:
-    def __init__(self, text):
-        self.text = text
-        self.pos = 0
-        self.current_char = self.text[0] if text else None
-    
     def advance(self):
-        self.pos += 1
         if self.pos >= len(self.text):
-            self.current_char = None
-        else:
-            self.current_char = self.text[self.pos]
+            return None
+        
+        char = self.text[self.pos]
+        self.pos+=1
+
+        if char == "\n":
+            self.line += 1
+        self.column += 1
+
+        return char
     
     def skip_whitespace(self):
         while self.current_char and self.current_char in ' \t':
             self.advance()
 
-    def read_number(self):
-        num = ""
-        while self.current_char and self.current_char.isdigit():
-            num += self.current_char
-            self.advance()
-        return int(num)
+    def read_number(self) -> Token:
+        start_column = self.column
+        result = ""
 
-    def get_next_token(self):
+        has_Decimal = False
+        while self.peek() and (self.peek().isdigit() or self.peek() == "."):
+            char = self.advance()
+            if char == ".":
+                if has_Decimal:
+                    self.error("Invalid number: multiple decimal points")
+                has_Decimal = True
+            result += char
 
+        if not any(c.isdigit() for c in result):
+            self.error("Invalid number format")
+        
+        return Token(TokenType.NUMBER, result, self.line, self.column)
+    
+    def read_identifier(self) -> Token:
+        start_column = self.column
+        result = ""
 
-        while self.current_char:
+        if not (self.peek().isalpha() or self.peek() == "_"):
+            self.error("Invalid identifier start")
+        
+        while (self.peek() and (self.peek().isalnum() or self.peek()== "_")):
+            result += self.advance()
+
+        token_type = self.keywords.get(result, TokenType.IDENTIFIER)
+
+        return Token(token_type, result, self.line, start_column)
+    
+    def read_string(self) -> Token:
+        start_column = self.column
+        quote_char = self.advance()
+        result = ""
+
+        while self.peek() and self.peek != quote_char:
+            char = self.advance()
+
+            if char == "\\":
+                next_char = self.advance()
+                if next_char == "n":
+                    result += "\n"
+                elif next_char == "t":
+                    result += "\t"
+                elif next_char == "\\":
+                    result += "\\"
+                elif next_char == quote_char:
+                    result += quote_char
+                else:
+                    result += next_char
+            else:
+                result += char
+        
+        if not self.peek():
+            self.error("Unterminated string literal")
+        self.advance()
+
+        return Token(TokenType.STRING, result, self.line, start_column)
+
+    def next_token(self) -> Token:
+
+        while self.peek():
+            current_char = self.peek()
+            start_column = self.column
+
             if self.current_char in " \t":
                 self.skip_whitespace()
                 continue
+            
+            if current_char == "\n":
+                self.advance()
+                return Token(TokenType.NEWLINE, "\\n", self.line - 1, start_column)
 
-            if self.current_char.isdigit():
-                return Token(TokenType.NUMBER, self.read_number())
-            
-            if self.current_char == '+':
-                self.advance()
-                return Token(TokenType.PLUS, "+")
-            
-            if self.current_char == "-":
-                self.advance()
-                return Token(TokenType.MINUS, "-")
-            
-            if self.current_char == "*":
-                self.advance()
-                return Token(TokenType.MULT, "*")
-            
-            if self.current_char == "/":
-                self.advance()
-                return Token(TokenType.DIVI, "/")
-            
-            if self.current_char == "(":
-                self.advance()
-                return Token(TokenType.LPAR, "(")
-            
-            if self.current_char == ")":
-                self.advance()
-                return Token(TokenType.RPAR, ")")
+            if current_char.isdigit():
+                return self.read_number()
 
-            raise Exception(f"Unknown character: {self.current_char}")
+            if current_char.isalpha() and current_char == "_":
+                return self.read_identifier()
+            
+            if current_char in '"\'':
+                return self.read_string()
+            
+            self.advance()
+            
+            if current_char == '+':
+                self.advance()
+                return Token(TokenType.PLUS, "+", self.line, start_column)
+            elif current_char == "-":
+                self.advance()
+                return Token(TokenType.MINUS, "-", self.line, start_column)
+            
+            elif current_char == "*":
+                self.advance()
+                return Token(TokenType.MULT, "*", self.line, start_column)
+            
+            elif current_char == "/":
+                self.advance()
+                return Token(TokenType.DIVI, "/", self.line, start_column)
+            
+            elif current_char == "(":
+                self.advance()
+                return Token(TokenType.LPAR, "(", self.line, start_column)
+            
+            elif current_char == ")":
+                self.advance()
+                return Token(TokenType.RPAR, ")", self.line, start_column)
+            elif current_char == "=":
+                return Token(TokenType.ASSIGN, "=", self.line, start_column)
+            else:
+                self.error(f"Unexpected Character: '{current_char}'")
         
         return Token(TokenType.EOF, None)
-            
+
+    def tokenize(self) -> List[Token]:
+        tokens = []
+
+        while True:
+            token = self.next_token()
+            tokens.append(token)
+
+            if token.type == TokenType.EOF:
+                break
+        
+        return tokens
