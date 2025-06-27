@@ -35,8 +35,8 @@ class Parser:
             return None
         
         if token.type == TokenType.IDENTIFIER and self.peek_token() and self.peek_token().type == TokenType.ASSIGN:
-            return self.parse)assignment()
-        elif TokenType == TokenType.IF:
+            return self.parse_assignment()
+        elif token.type == TokenType.IF:
             return self.parse_if()
         elif token.type == TokenType.WHILE:
             return self.parse_while()
@@ -66,7 +66,7 @@ class Parser:
         return If(condition, then_branch, else_branch)
     
     def parse_while(self):
-        self.expect(TokenType.While)
+        self.expect(TokenType.WHILE)
         condition = self.parse_expression()
         self.expect(TokenType.COLON)
 
@@ -75,9 +75,9 @@ class Parser:
         return While(condition, body)
     
     def parse_expression(self):
-        return self.parse_comparision()
+        return self.parse_comparison()
     
-    def parse_comparision(self):
+    def parse_comparison(self):
         expr = self.parse_addition()
 
         while self.current_token() and self.current_token().type in [TokenType.GREATER, TokenType.LESS]:
@@ -94,7 +94,7 @@ class Parser:
         while self.current_token() and self.current_token().type in [TokenType.PLUS, TokenType.MINUS]:
             op = self.current_token().value
             self.advance()
-            right = self.parse_multipication()
+            right = self.parse_multiplication()
             expr = BinOp(expr,op, right)
         return expr
 
@@ -115,7 +115,7 @@ class Parser:
             operand = self.parse_unary()
             return UnaryOp(op, operand)
         
-        return self.pars_primary()
+        return self.parse_primary()
 
     def parse_primary(self):
         token = self.current_token()
@@ -149,10 +149,11 @@ class Parser:
             statement = self.parse_statement()
             if statement:
                 statements.append(statement)
-            return Program(statements)
-        
-    def parse(code):
-        tokenizer = Tokenizer(code)
-        tokens = tokenizer.tokenize()
-        parser = Parser(tokens)
-        return parser.parse()
+        return Program(statements)
+
+def parse(code):
+    """Convenience function to parse code string"""
+    tokenizer = Tokenizer(code)
+    tokens = tokenizer.tokenize()
+    parser = Parser(tokens)
+    return parser.parse()

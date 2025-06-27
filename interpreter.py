@@ -1,11 +1,12 @@
 from AST import *
+from parser import parse
 
 class Interpreter:
     def __init__(self):
         self.variables = {}
 
     def visit(self, node):
-        method_name = f'visit_{node.__class__.__name}'
+        method_name = f'visit_{node.__class__.__name__}'
         method = getattr(self, method_name, self.generic_visit)
         return method(node)
 
@@ -39,25 +40,25 @@ class Interpreter:
         elif node.op == "-":
             return left - right
         elif node.op == "*":
-            return left*right
-        elif node.op =="/":
+            return left * right
+        elif node.op == "/":
             if right == 0:
                 raise ZeroDivisionError("Division by zero")
-            return left/right
+            return left / right
         elif node.op == '>':
             return left > right
         elif node.op == '<':
             return left < right
         else:
-            raise Exception(f"Unkwown binary operator: {node.op}")
+            raise Exception(f"Unknown binary operator: {node.op}")
     
     def visit_UnaryOp(self, node):
-        operand = self.visit(node.opeand)
+        operand = self.visit(node.operand)
 
         if node.op == '-':
             return -operand
         else:
-            raise Exception(f"Unkwown unary operator: {node.op}")
+            raise Exception(f"Unknown unary operator: {node.op}")
     
     def visit_Assign(self, node):
         value = self.visit(node.value)
@@ -76,12 +77,12 @@ class Interpreter:
             result = None
             for statement in node.then_branch:
                 result = self.visit(statement)
-                return result
+            return result
         elif node.else_branch:
             result = None
             for statement in node.else_branch:
                 result = self.visit(statement)
-                return result
+            return result
         
         return None
     
@@ -91,9 +92,8 @@ class Interpreter:
             for statement in node.body:
                 result = self.visit(statement)
         return result
-    
+
 def interpret(code):
-    from parser import parse
-    ast = parser(code)
+    ast = parse(code)
     interpreter = Interpreter()
-    return interpreter.vist(ast)
+    return interpreter.visit(ast)
