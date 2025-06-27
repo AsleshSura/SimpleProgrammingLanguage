@@ -8,27 +8,34 @@ class TokenType(Enum):
     NUMBER = "NUMBER"
     PLUS = "PLUS"
     MINUS = "MINUS"
-    MULT = "MULT"
-    DIVI = "DIVI"
-    LPAR = "LPAR"
-    RPAR = "RPAR"
+    MULTIPLY = "MULTIPLY"
+    DIVIDE = "DIVIDE"
+    LPAREN = "LPAREN"
+    RPAREN = "RPAREN"
 
-    IDENTIFIER = "INDENTIFIER"
+    IDENTIFIER = "IDENTIFIER"
     STRING = "STRING"
     ASSIGN = "ASSIGN"
 
     IF = "IF"
     ELSE = "ELSE"
-    FUN = "FUN"
+    DEF = "DEF"
     WHILE = "WHILE"
+
+    # Comparison operators
+    GREATER = "GREATER"
+    LESS = "LESS"
+    COLON = "COLON"
 
     EOF = "EOF" #End of file
     NEWLINE = "NEWLINE"
 
 class Token:
-    def __init__(self, type, value):
+    def __init__(self, type, value, line, column):
         self.type = type
         self.value = value
+        self.line = line
+        self.column = column
     
     def __str__(self):
         return f"Token({self.type}, {self.value})"
@@ -36,7 +43,7 @@ class Token:
 class LexerError(Exception):
     def __init__(self, message: str, line:int, column:int):
         self.message = message
-        self.line = self
+        self.line = line
         self.column = column
         super().__init__(f"Lexer Error at line {line}, column {column}: {message}")
 
@@ -50,7 +57,7 @@ class Tokenizer:
         self.keywords = {
             "if": TokenType.IF,
             "else": TokenType.ELSE,
-            "fun": TokenType.FUN,
+            "def": TokenType.DEF,
             "while": TokenType.WHILE
         }
     
@@ -73,31 +80,37 @@ class Tokenizer:
 
         if char == "\n":
             self.line += 1
-        self.column += 1
+            self.column = 1
+        else:
+            self.column += 1
 
         return char
     
     def skip_whitespace(self):
-        while self.current_char and self.current_char in ' \t':
+        while self.peek() and self.peek() in ' \t':
             self.advance()
 
     def read_number(self) -> Token:
         start_column = self.column
         result = ""
 
-        has_Decimal = False
+        has_decimal = False
         while self.peek() and (self.peek().isdigit() or self.peek() == "."):
             char = self.advance()
             if char == ".":
-                if has_Decimal:
+                if has_decimal:
                     self.error("Invalid number: multiple decimal points")
-                has_Decimal = True
+                has_decimal = True
             result += char
 
         if not any(c.isdigit() for c in result):
             self.error("Invalid number format")
         
-        return Token(TokenType.NUMBER, result, self.line, self.column)
+        # Check if number is immediately followed by letters (invalid identifier)
+        if self.peek() and (self.peek().isalpha() or self.peek() == "_"):
+            self.error("Invalid token: numbers cannot be followed by letters")
+        
+        return Token(TokenType.NUMBER, result, self.line, start_column)
     
     def read_identifier(self) -> Token:
         start_column = self.column
@@ -118,7 +131,7 @@ class Tokenizer:
         quote_char = self.advance()
         result = ""
 
-        while self.peek() and self.peek != quote_char:
+        while self.peek() and self.peek() != quote_char:
             char = self.advance()
 
             if char == "\\":
@@ -148,7 +161,7 @@ class Tokenizer:
             current_char = self.peek()
             start_column = self.column
 
-            if self.current_char in " \t":
+            if current_char in " \t":
                 self.skip_whitespace()
                 continue
             
@@ -159,7 +172,7 @@ class Tokenizer:
             if current_char.isdigit():
                 return self.read_number()
 
-            if current_char.isalpha() and current_char == "_":
+            if current_char.isalpha() or current_char == "_":
                 return self.read_identifier()
             
             if current_char in '"\'':
@@ -168,33 +181,29 @@ class Tokenizer:
             self.advance()
             
             if current_char == '+':
-                self.advance()
                 return Token(TokenType.PLUS, "+", self.line, start_column)
             elif current_char == "-":
-                self.advance()
                 return Token(TokenType.MINUS, "-", self.line, start_column)
-            
             elif current_char == "*":
-                self.advance()
-                return Token(TokenType.MULT, "*", self.line, start_column)
-            
+                return Token(TokenType.MULTIPLY, "*", self.line, start_column)
             elif current_char == "/":
-                self.advance()
-                return Token(TokenType.DIVI, "/", self.line, start_column)
-            
+                return Token(TokenType.DIVIDE, "/", self.line, start_column)
             elif current_char == "(":
-                self.advance()
-                return Token(TokenType.LPAR, "(", self.line, start_column)
-            
+                return Token(TokenType.LPAREN, "(", self.line, start_column)
             elif current_char == ")":
-                self.advance()
-                return Token(TokenType.RPAR, ")", self.line, start_column)
+                return Token(TokenType.RPAREN, ")", self.line, start_column)
             elif current_char == "=":
                 return Token(TokenType.ASSIGN, "=", self.line, start_column)
+            elif current_char == ">":
+                return Token(TokenType.GREATER, ">", self.line, start_column)
+            elif current_char == "<":
+                return Token(TokenType.LESS, "<", self.line, start_column)
+            elif current_char == ":":
+                return Token(TokenType.COLON, ":", self.line, start_column)
             else:
                 self.error(f"Unexpected Character: '{current_char}'")
         
-        return Token(TokenType.EOF, None)
+        return Token(TokenType.EOF, "", self.line, self.column)
 
     def tokenize(self) -> List[Token]:
         tokens = []
@@ -205,5 +214,12 @@ class Tokenizer:
 
             if token.type == TokenType.EOF:
                 break
+        
+        # Check for incomplete expressions (trailing operators)
+        if len(tokens) >= 2:
+            second_last_token = tokens[-2]  # Second to last token (before EOF)
+            if second_last_token.type in [TokenType.PLUS, TokenType.MINUS, TokenType.MULTIPLY, TokenType.DIVIDE]:
+                raise LexerError(f"Incomplete expression: trailing operator '{second_last_token.value}'", 
+                               second_last_token.line, second_last_token.column)
         
         return tokens

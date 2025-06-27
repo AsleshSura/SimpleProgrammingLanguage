@@ -13,14 +13,12 @@ def test_tokenizer():
         ("x", "simple identi"),
         ("my_var", "Identifer con underscore"),
         ("count123", "identi w numbers"),
-        ("_priv", "Identi start w underscore"),
-
-        ("If", "if keyword"),
-        ("Else", "else keyword"),
+        ("_priv", "Identi start w underscore"),        ("if", "if keyword"),
+        ("else", "else keyword"),
         ("def", "def keyword"),
         ("while", "while keyword"),
 
-        ("hello", "Simple string"),
+        ('"hello"', "Simple string"),
         ("'world'", "single quote str"),
         ('"hello world"', "string w spaces"),
         ('"hello\\nworld"', "string con esc seq"),
@@ -84,20 +82,28 @@ def test_error_cases():
         ("@#$", "Invalid characters"),
         ("2 + ", "Incomplete expression"),
     ]
-    
+
+    error = 0
+    success = 0    
     for code, description in error_cases:
         print(f"\n Error Test: {description}")
         print(f"   Input: {code}")
+
         
         try:
             tokenizer = Tokenizer(code)
             tokens = tokenizer.tokenize()
             print("     Expected error but got tokens:", 
                   [f"{t.type.name}:'{t.value}'" for t in tokens if t.type != TokenType.EOF])
+            error += 1
         except LexerError as e:
             print(f"    Correctly caught error: {e}")
+            success += 1
         except Exception as e:
             print(f"    Unexpected error type: {e}")
+            error += 1
+    print()
+    print(f"Results: {success} passed, {error} failed")
 
 def interactive_test():
     print("Enter Code to tokenize (or 'quit' to exit): ")
@@ -134,6 +140,7 @@ if __name__ == "__main__":
     success = test_tokenizer()
 
     test_error_cases()
+
 
     print("\n" + "-"*50)
     response = input("Want to start interactive testing? (y/n):").lower()
