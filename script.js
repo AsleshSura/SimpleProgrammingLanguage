@@ -553,12 +553,36 @@ class Interpreter:
 
         if method_name not in methods:
             raise SPLError(f"String has no method '{method_name}'")
-        
+
         try:
             return methods[method](*args)
         except TypeError:
             raise SPLError(f"Wrong number of arguments for string.{method_name}")
 
+    def _call_list_method(self, list_obj, method_name, args):
+        method = {
+            'length': lambda: len(list_obj),
+            'append': lambda item: list_obj.append(item) or list_obj,
+            'prepend': lambda item: list_obj.insert(0, item) or list_obj,
+            'pop': lambda index=-1: list_obj.pop(index),
+            'remove': lambda: list_obj.remove(item) or list_obj,
+            'reverse': lambda: list_obj.reverse() or list_obj,
+            'sort': lambda: list_obj.sort() or list_obj,
+            'contains': lambda item: item in list_obj,
+            'index': lambda item: list_obj.index(item) if item in list_obj else -1,
+            'slice': lambda start, end=None: list_obj[start:end] if end else list_obj[start:],
+            'join': lambda separator=',': separator.join(str(x) for x in list_obj),
+            'clear': lambda: list_obj.clear() or list_obj,
+            'copy': lambda: list_obj.copy()
+        }
+        
+        if method_name not in methods:
+            raise SPLError(f"List has no method '{method_name}'")
+        
+        try:
+            return methods[method_name](*args)
+        except (TypeError, ValueError) as e:
+            Raise SPLError(f"Error in list.{method_name}: {str(e)}")
 
     def _execute_statements(self, statements):
         result = None
