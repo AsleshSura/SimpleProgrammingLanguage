@@ -604,7 +604,21 @@ class Interpreter:
                 return methods[method_name](*args)
             except (TypeError, ValueError) as e:
                 raise SPLError(f"Error in number.{method_name}: {str(e)}")
-                
+
+    def _call_boolean_method(self, bool_obj, method_name, args):
+        methods = {
+            'tostring': lambda: str(bool_obj).lower(),
+            'tonumber': lambda: 1 if bool_obj else 0,
+            'not': lambda: not bool_obj
+        }
+
+        if method_name not in methods:
+            raise SPLError(f"Boolean has no method '{method_name}'")
+        
+        try:
+            return methods[method_name](*args)
+        except TypeError:
+            raise SPLError(f"Wrong number of arguments for boolean.{method_name}")
 
     def _execute_statements(self, statements):
         result = None
