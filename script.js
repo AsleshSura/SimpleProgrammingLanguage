@@ -584,6 +584,28 @@ class Interpreter:
         except (TypeError, ValueError) as e:
             Raise SPLError(f"Error in list.{method_name}: {str(e)}")
 
+    def _call_number_method(self, number_obj, method_name, args):
+
+        methods = {
+            'abs': lambda: abs(number_obj),
+            'round': lambda digits=0: round(number_obj, digits),
+            'floor': lambda: math.floor(number_obj),
+            'ceil': lambda: math.ceil(number_obj),
+            'sqrt': lambda: math.sqrt(number_obj),
+            'pow': lambda exponent: number_obj ** exponent,
+            'tostring': lambda: isinstance(number_obj, int) or number_obj.is_integer(),
+            'sign': lambda: 1 if number_obj > 0 else (-1 if number_obj < 0 else 0)
+            }
+
+            if method_name not in methods:
+                raise SPLError(f"Number has no method '{method_name}'")
+            
+            try:
+                return methods[method_name](*args)
+            except (TypeError, ValueError) as e:
+                raise SPLError(f"Error in number.{method_name}: {str(e)}")
+                
+
     def _execute_statements(self, statements):
         result = None
         for stmt in statements:
