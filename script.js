@@ -154,6 +154,9 @@ class Lexer:
                     self.advance()
                 else:
                     raise SPLError(f"Unexpected character: {self.current_char()}")
+            elif self.current_char() == ';':
+                tokens.append(Token('SEMICOLON', ';', self.line, self.col))
+                self.advance()
             elif self.current_char() == ':':
                 tokens.append(Token('COLON', ':', self.line, self.col))
                 self.advance()
@@ -249,6 +252,14 @@ class Parser:
             stmt = self.parse_statement()
             if stmt:
                 statements.append(stmt)
+                if self.current_token() and self.current_token().type == 'SEMICOLON':
+                    self.advance()
+                else:
+                    next_pos = self.pos
+                    while next_pos < len(self.tokens) and self.tokens[next_pos].type == 'NEWLINE':
+                        next_pos += 1
+                    if next_pos < len(self.tokens) and self.tokens[next_pos].type != 'EOF':
+                        self.expect('SEMICOLON')
         return {'type': 'Program', 'statements': statements}
     
     def parse_statement(self):
@@ -323,7 +334,7 @@ class Parser:
     def parse_for(self):
         self.advance()
 
-        if not self.current_token() or self.current_token().type != 'INDENTIFIER':
+        if not self.current_token() or self.current_token().type != 'IDENTIFIER':
             raise SPLError("Expected variable name after 'for'")
         var_name = self.current_token().value
         self.advance()
@@ -343,11 +354,11 @@ class Parser:
         if self.current_token() and self.current_token().type == 'COMMA':
             start_expr = first_arg
             self.advance()
-            send = self.parse_expression()
+            end = self.parse_expression()
 
             if self.current_token() and self.current_token().type == 'COMMA':
                 self.advance()
-                step_expr = self.parse_expressions()
+                step_expr = self.parse_expression()
             else:
                 step_expr = {'type': 'Number', 'value': 1}
         else:
@@ -398,10 +409,22 @@ class Parser:
             if token_type == 'ELSE':
                 break
             
+            if token_type not in ['PRINT', 'IF', 'WHILE', 'FOR', 'BREAK', 'IDENTIFIER']:
+                break
+
             try:
                 stmt = self.parse_statement()
                 if stmt:
                     statements.append(stmt)
+                    if self.current_token() and self.current_token().type == 'SEMICOLON':
+                        self.advance()
+                    else:
+                        next_pos = self.pos
+                        while next_pos < len(self.tokens) and self.tokens[next_pos].type == 'NEWLINE':
+                            next_pos += 1
+                        
+                        if (next_pos < len(self.tokens) and self.tokens[next_pos].type not in ['EOF', 'ELSE'] and self.tokens[next_pos].type in ['PRINT', 'IF', 'WHILE', 'FOR', 'BREAK', 'IDENTIFIER']):
+                            self.expect('SEMICOLON')
             except Exception as e:
                 break
         return statements
