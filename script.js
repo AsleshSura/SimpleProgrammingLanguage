@@ -1,5 +1,6 @@
 // Simplified SPL interpreter code - more concise and readable
 const splInterpreterCode = `
+import math, random, string
 class SPLError(Exception): pass
 
 class Token:
@@ -13,12 +14,12 @@ class Lexer:
         '(': 'LPAREN', ')': 'RPAREN', '[': 'LBRACKET', ']': 'RBRACKET',
         '{': 'LBRACE', '}': 'RBRACE', ';': 'SEMICOLON', ',': 'COMMA', '.': 'DOT'
     }
-    
+
     KEYWORDS = {
         'if': 'IF', 'else': 'ELSE', 'while': 'WHILE', 'print': 'PRINT',
         'break': 'BREAK', 'True': 'TRUE', 'False': 'FALSE',
         'for': 'FOR', 'in': 'IN', 'range': 'RANGE',
-        'String': 'STRING_CLASS', 'list':'LIST_CLASS',
+        'String': 'STRING_CLASS', 'List':'LIST_CLASS',
         'Math': 'MATH_CLASS', 'Number': 'NUMBER_CLASS'
     }
     
@@ -176,28 +177,6 @@ class Parser:
             return parsers[token_type]()
         else:
             raise SPLError(f"Unexpected token: {token_type}")
-    
-    def parse_method_call(self, object_name):
-        self.advance()
-        method_name = self.current_token().value
-        self.advance()
-        self.expect('LPAREN')
-
-        args = []
-        if self.current_token() and self.current_token.type != 'RPAREN':
-            args.append(self.parse_expresion())
-            while self.current_token() and self.current_token().type == 'COMMA':
-                self.advance()
-                args.append(self.parse_expressions())
-        self.expect('RPAREN')
-
-        return {
-            'type': 'MethodCall',
-            'object': {'type': 'Variable', 'name': object_name},
-            'method': method_name,
-            'args': args
-        }
-
 
     def parse_break(self):
         self.advance()
@@ -218,11 +197,19 @@ class Parser:
         return {'type': 'Print', 'args': args}
     
     def parse_assignment(self):
-        name = self.current_token().value
-        self.advance()  # consume identifier
-        self.expect('ASSIGN')
-        value = self.parse_expression()
-        return {'type': 'Assign', 'name': name, 'value': value}
+        # Look ahead to see if this is an assignment or expression statement
+        if (self.pos + 1 < len(self.tokens) and 
+            self.tokens[self.pos + 1].type == 'ASSIGN'):
+            # This is an assignment
+            name = self.current_token().value
+            self.advance()  # consume identifier
+            self.expect('ASSIGN')
+            value = self.parse_expression()
+            return {'type': 'Assign', 'name': name, 'value': value}
+        else:
+            # This is an expression statement
+            expr = self.parse_expression()
+            return {'type': 'ExpressionStatement', 'expression': expr}
     
     def parse_if(self):
         self.advance()  # consume 'if'
@@ -346,20 +333,29 @@ class Parser:
             'TRUE': lambda: {'type': 'Boolean', 'value': True},
             'FALSE': lambda: {'type': 'Boolean', 'value': False}
         }
-        
+    
         if token.type in simple_types:
             self.advance()
             return simple_types[token.type]()
+        elif token.type in ['STRING_CLASS', 'LIST_CLASS', 'MATH_CLASS', 'NUMBER_CLASS']:
+            class_name = token.value
+            self.advance()
+            if self.current_token() and self.current_token().type == 'DOT':
+                return self.parse_static_method(class_name)
+            else:
+                raise SPLError(f"Unexpected class reference: {class_name}")
         elif token.type == 'IDENTIFIER':
             name = token.value
             self.advance()
+
+            result = None
             if self.current_token() and self.current_token().type == 'LBRACKET':
                 self.advance()
                 index = self.parse_expression()
                 self.expect('RBRACKET')
-                return {'type': 'Index', 'object': {'type': 'Variable', 'name': name}, 'index': index}
+                result =  {'type': 'Index', 'object': {'type': 'Variable', 'name': name}, 'index': index}
             else:
-                return {'type': 'Variable', 'name': name}
+                result =  {'type': 'Variable', 'name': name}
             
             while self.current_token() and self.current_token().type == 'DOT':
                 self.advance()
@@ -372,7 +368,7 @@ class Parser:
                     args.append(self.parse_expression())
                     while self.current_token() and self.current_token().type == 'COMMA':
                         self.advance()
-                        args.appen(self.parse_expression())
+                        args.append(self.parse_expression())
                 self.expect('RPAREN')
 
                 result = {
@@ -463,19 +459,19 @@ class Interpreter:
         op = node['op']
         
         if op == '/' and right == 0:
-            raise SPLError(Division by zero")
+            raise SPLError("Division by zero")
 
         ops = {
-            '+': left + right,
-            '-':  left - right,
-            '*': left * right,
-            '/': left / right,
-            '>': left > right,
-            '<': left < right,
-            '>=': left >= right,
-            '<=': left <= right,
-            '==': left == right,
-            '!=': left != right
+            '+': lambda l, r: l + r,
+            '-': lambda l, r: l - r,
+            '*': lambda l, r: l * r,
+            '/': lambda l, r: l / r,
+            '>': lambda l, r: l > r,
+            '<': lambda l, r: l < r,
+            '>=': lambda l, r: l >= r,
+            '<=': lambda l, r: l <= r,
+            '==': lambda l, r: l == r,
+            '!=': lambda l, r: l != r
         }
         
         if op in ops:
@@ -494,6 +490,11 @@ class Interpreter:
         value = self.interpret(node['value'])
         self.variables[node['name']] = value
         return value
+    
+    def visit_ExpressionStatement(self, node):
+        # Evaluate expression but don't return the value (for statements)
+        self.interpret(node['expression'])
+        return None
     
     def visit_Print(self, node):
         values = [str(self.interpret(arg)) for arg in node['args']]
@@ -587,11 +588,11 @@ class Interpreter:
         args = [self.interpret(arg) for arg in node['args']]
 
         if class_name == 'String':
-            return self.call_string_static_method(method_name, args)
+            return self._call_string_static_method(method_name, args)
         elif class_name == 'List':
-            return self.call_list_static_method(method_name, args)
+            return self._call_list_static_method(method_name, args)
         elif class_name == 'Math':
-            return self.call_math_static_method(method_name, args)
+            return self._call_math_static_method(method_name, args)
         else:
             raise SPLError(f"Unknown class: {class_name}")
     
@@ -599,7 +600,7 @@ class Interpreter:
         methods = {
             'fromcode': lambda code: chr(int(code)),
             'join': lambda items, sep='': sep.join(str(x) for x in items),
-            'repeat': lambda text, count: str(text) * int(count)
+            'repeat': lambda text, count: str(text) * int(count),
             'ascii_letters': lambda: string.ascii_letters,
             'digits': lambda: string.digits
             
@@ -629,20 +630,20 @@ class Interpreter:
             raise SPLError(f"String has no method '{method_name}'")
 
         try:
-            return methods[method](*args)
+            return methods[method_name](*args)
         except TypeError:
             raise SPLError(f"Wrong number of arguments for string.{method_name}")
 
     def _call_list_static_method(self, method_name, args):
         methods = {
-            'range': lambda start, end=None, step=1: list(range(start, end or start, step))
+            'range': lambda start, end=None, step=1: list(range(start, end or start, step)),
             'fill': lambda count, value: [value] * int(count),
-            'emptty': lambda: [],
+            'empty': lambda: [],
             'from_string': lambda text: list(text)
         }
         
         if method_name not in methods:
-            raise SPLError(f"List class has no static method '{method)name}'")
+            raise SPLError(f"List class has no static method '{method_name}'")
         
         return methods[method_name](*args)
     
@@ -660,19 +661,19 @@ class Interpreter:
             'tan': lambda x: math.tan(x),
             'log': lambda x: math.log(x)
         }
-        
+
         if method_name not in methods:
             raise SPLError(f"Math class has no static method '{method_name}'")
         
         return methods[method_name](*args)
 
     def _call_list_method(self, list_obj, method_name, args):
-        method = {
+        methods = {
             'length': lambda: len(list_obj),
             'append': lambda item: list_obj.append(item) or list_obj,
             'prepend': lambda item: list_obj.insert(0, item) or list_obj,
             'pop': lambda index=-1: list_obj.pop(index),
-            'remove': lambda: list_obj.remove(item) or list_obj,
+            'remove': lambda item: list_obj.remove(item) or list_obj,
             'reverse': lambda: list_obj.reverse() or list_obj,
             'sort': lambda: list_obj.sort() or list_obj,
             'contains': lambda item: item in list_obj,
@@ -689,28 +690,28 @@ class Interpreter:
         try:
             return methods[method_name](*args)
         except (TypeError, ValueError) as e:
-            Raise SPLError(f"Error in list.{method_name}: {str(e)}")
+            raise SPLError(f"Error in list.{method_name}: {str(e)}")
 
     def _call_number_method(self, number_obj, method_name, args):
 
         methods = {
             'abs': lambda: abs(number_obj),
-            'round': lambda digits=0: round(number_obj, digits),
+            'round': lambda digits=0: round(number_obj, int(digits)),
             'floor': lambda: math.floor(number_obj),
             'ceil': lambda: math.ceil(number_obj),
             'sqrt': lambda: math.sqrt(number_obj),
             'pow': lambda exponent: number_obj ** exponent,
-            'tostring': lambda: isinstance(number_obj, int) or number_obj.is_integer(),
+            'tostring': lambda: str(number_obj),
             'sign': lambda: 1 if number_obj > 0 else (-1 if number_obj < 0 else 0)
-            }
+        }
 
-            if method_name not in methods:
-                raise SPLError(f"Number has no method '{method_name}'")
-            
-            try:
-                return methods[method_name](*args)
-            except (TypeError, ValueError) as e:
-                raise SPLError(f"Error in number.{method_name}: {str(e)}")
+        if method_name not in methods:
+            raise SPLError(f"Number has no method '{method_name}'")
+        
+        try:
+            return methods[method_name](*args)
+        except (TypeError, ValueError) as e:
+            raise SPLError(f"Error in number.{method_name}: {str(e)}")
 
     def _call_boolean_method(self, bool_obj, method_name, args):
         methods = {
