@@ -645,6 +645,26 @@ class Interpreter:
             raise SPLError(f"List class has no static method '{method)name}'")
         
         return methods[method_name](*args)
+    
+    def _call_math_static_method(self, method_name, args):
+        methods = {
+            'pi': lambda: math.pi,
+            'e': lambda: math.e,
+            'random': lambda: random.random(),
+            'max': lambda items: max(items),
+            'min': lambda items: min(items),
+            'sum': lambda items: sum(items),
+            'average': lambda items: sum(items) / len(items),
+            'sin': lambda x: math.sin(x),
+            'cos': lambda x: math.cos(x),
+            'tan': lambda x: math.tan(x),
+            'log': lambda x: math.log(x)
+        }
+        
+        if method_name not in methods:
+            raise SPLError(f"Math class has no static method '{method_name}'")
+        
+        return methods[method_name](*args)
 
     def _call_list_method(self, list_obj, method_name, args):
         method = {
