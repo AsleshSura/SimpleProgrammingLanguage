@@ -1,5 +1,11 @@
 # Simple Programming Language (SPL) - Complete Online IDE
 
+## 🌐 [**Try SPL Online - Live IDE**](https://asleshsura.github.io/SimpleProgrammingLanguage/) 🚀
+
+*Click above to start coding immediately in your browser - no installation required!*
+
+---
+
 A powerful, feature-rich programming language with a modern browser-based IDE, powered by Pyodide. SPL combines simplicity with advanced features like object-oriented programming, built-in data type methods, and comprehensive standard library functions.
 
 ## 🚀 Language Features
@@ -407,3 +413,7 @@ SPL demonstrates advanced programming language concepts:
 **SPL represents a complete programming language implementation with modern features, running entirely in your browser. From basic arithmetic to complex object-oriented operations, SPL provides a powerful yet approachable platform for learning and experimentation.**
 
 *This project showcases the fascinating world of programming language design and implementation - a 15+ hour journey of discovery that proves building your own language is both achievable and incredibly rewarding!* 🎉
+
+**<hr>**
+
+This project was also made for [Shipwrecked](https://shipwrecked.hackclub.com/)
