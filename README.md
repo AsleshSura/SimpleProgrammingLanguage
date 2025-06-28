@@ -4,6 +4,8 @@
 
 *Click above to start coding immediately in your browser - no installation required!*
 
+📖 **[Complete Technical Documentation](./DOCUMENTATION.md)** - Detailed language specification and implementation guide
+
 ---
 
 A powerful, feature-rich programming language with a modern browser-based IDE, powered by Pyodide. SPL combines simplicity with advanced features like object-oriented programming, built-in data type methods, and comprehensive standard library functions.
