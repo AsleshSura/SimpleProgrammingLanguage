@@ -8,22 +8,23 @@
         <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     </head>
     <body>
-            <div class="container">
-                <header class="header">
-                    <h1>Simple Programming Language</h1>
-                    <p>An online CLI for my Simple Programming Language</p>
-                    <div id="status" class="status">Loading Pyodide</div>
-                </header>
+        <div class="container">
+            <header class="header">
+                <h1>Simple Programming Language</h1>
+                <p>An online CLI for my Simple Programming Language</p>
+                <div id="status" class="status">Loading Pyodide...</div>
+            </header>
 
-                <div class="terminal">
-                    <div class="terminal-header">
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-buttons">
                         <span class="btn red"></span>
                         <span class="btn yellow"></span>
                         <span class="btn green"></span>
                     </div>
                     <div class="terminal-title">Terminal</div>
                 </div>
-
+                
                 <div class="terminal-body">
                     <div id="output" class="output">
                         <div class="welcome-message">
@@ -37,8 +38,8 @@
                         </div>
                     </div>
                     <div class="input-line">
-                        <span class="prompt">>>></span>
-                        <input type="text" id="command-input" placeholder="Loading..." disabled autocomplete="off" spellcheck="false">
+                        <span class="prompt">>>> </span>
+                        <input type="text" id="command-input" class="command-input" placeholder="Loading..." disabled autocomplete="off" spellcheck="false">
                     </div>
                 </div>
             </div>
@@ -48,7 +49,7 @@
                 <ul>
                     <li><strong>Arithmetic:</strong> +, -, *, /, ()</li>
                     <li><strong>Variables:</strong> x = 5</li>
-                    <li><strong>Comparisons:</strong> >,< </li>
+                    <li><strong>Comparisons:</strong> >, < </li>
                     <li><strong>Strings:</strong> "hello world"</li>
                     <li><strong>Control Flow:</strong> if x > 0: (basic)</li>
                 </ul>
@@ -57,4 +58,5 @@
 
         <script src="script.js"></script>
     </body>
+</html>
 </html>
