@@ -123,6 +123,18 @@ class Lexer:
             elif self.current_char() == ')':
                 tokens.append(Token('RPAREN', ')', self.line, self.col))
                 self.advance()
+            elif self.current_char() == '[':
+                tokens.append(Token('LBRACKET', '[', self.line, self.col))
+                self.advance()
+            elif self.current_char() == ']':
+                tokens.append(Token('RBRACKET', ']', self.line, self.col))
+                self.advance()
+            elif self.current_char() == '{':
+                tokens.append(Token('LBRACE', '{', self.line, self.col))
+                self.advance()
+            elif self.current_char() == '}':
+                tokens.append(Token('RBRACE', '}', self.line, self.col))
+                self.advance()
             elif self.current_char() == '=':
                 if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == '=':
                     tokens.append(Token('EQ', '==', self.line, self.col))
@@ -156,9 +168,6 @@ class Lexer:
                     raise SPLError(f"Unexpected character: {self.current_char()}")
             elif self.current_char() == ';':
                 tokens.append(Token('SEMICOLON', ';', self.line, self.col))
-                self.advance()
-            elif self.current_char() == ':':
-                tokens.append(Token('COLON', ':', self.line, self.col))
                 self.advance()
             elif self.current_char() == ',':
                 tokens.append(Token('COMMA', ',', self.line, self.col))
@@ -311,7 +320,6 @@ class Parser:
     def parse_if(self):
         self.advance()  # consume 'if'
         condition = self.parse_expression()
-        self.expect('COLON')
         
         # Skip newlines
         while self.current_token() and self.current_token().type == 'NEWLINE':
@@ -322,7 +330,6 @@ class Parser:
         else_branch = []
         if self.current_token() and self.current_token().type == 'ELSE':
             self.advance()  # consume 'else'
-            self.expect('COLON')
             
             while self.current_token() and self.current_token().type == 'NEWLINE':
                 self.advance()
@@ -341,33 +348,7 @@ class Parser:
 
         self.expect('IN')
 
-        self.expect('RANGE')
-
-        self.expect('LPAREN')
-
-        start = 0
-        end = None
-        step = 1
-
-        first_arg = self.parse_expression()
-
-        if self.current_token() and self.current_token().type == 'COMMA':
-            start_expr = first_arg
-            self.advance()
-            end = self.parse_expression()
-
-            if self.current_token() and self.current_token().type == 'COMMA':
-                self.advance()
-                step_expr = self.parse_expression()
-            else:
-                step_expr = {'type': 'Number', 'value': 1}
-        else:
-            start_expr = {'type': 'Number', 'value': 0}
-            end = first_arg
-            step_expr = {'type': 'Number', 'value': 1}
-        
-        self.expect('RPAREN')
-        self.expect('COLON')
+        iterable = self.parse_expression()
 
         while self.current_token() and self.current_token().type == 'NEWLINE':
             self.advance()
@@ -377,16 +358,13 @@ class Parser:
         return {
             'type': 'For',
             'var_name': var_name,
-            'start': start_expr,
-            'end': end,
-            'step': step_expr,
+            'iterable': iterable,
             'body': body
         }
         
     def parse_while(self):
         self.advance()  # consume 'while'
         condition = self.parse_expression()
-        self.expect('COLON')
         
         while self.current_token() and self.current_token().type == 'NEWLINE':
             self.advance()
@@ -397,38 +375,26 @@ class Parser:
     
     def parse_block(self):
         statements = []
+        self.expect('LBRACE')
 
-        while self.current_token() and self.current_token().type != 'EOF':
-            
+        while self.current_token() and self.current_token().type != 'RBRACE':
             if self.current_token().type == 'NEWLINE':
                 self.advance()
                 continue
             
-            token_type = self.current_token().type
-
-            if token_type == 'ELSE':
-                break
-            
-            if token_type not in ['PRINT', 'IF', 'WHILE', 'FOR', 'BREAK', 'IDENTIFIER']:
-                break
-
-            try:
-                stmt = self.parse_statement()
-                if stmt:
-                    statements.append(stmt)
-                    if self.current_token() and self.current_token().type == 'SEMICOLON':
-                        self.advance()
-                    else:
-                        next_pos = self.pos
-                        while next_pos < len(self.tokens) and self.tokens[next_pos].type == 'NEWLINE':
-                            next_pos += 1
-                        
-                        if (next_pos < len(self.tokens) and self.tokens[next_pos].type not in ['EOF', 'ELSE'] and self.tokens[next_pos].type in ['PRINT', 'IF', 'WHILE', 'FOR', 'BREAK', 'IDENTIFIER']):
-                            self.expect('SEMICOLON')
-            except Exception as e:
-                break
+            stmt = self.parse_statement()
+            if stmt:
+                statements.append(stmt)
+                if self.current_token() and self.current_token().type == 'SEMICOLON':
+                    self.advance()
+                else:
+                    next_pos = self.pos
+                    while next_pos < len(self.tokens) and self.tokens[next_pos].type == 'NEWLINE':
+                        next_pos += 1
+                    if next_pos < len(self.tokens) and self.tokens[next_pos].type != 'RBRACE':
+                        self.expect('SEMICOLON)
+        self.expect('RBRACE')
         return statements
-
 
 
     def parse_expression(self):
@@ -478,8 +444,16 @@ class Parser:
             self.advance()
             return {'type': 'String', 'value': token.value}
         elif token.type == 'IDENTIFIER':
+            name = token.value
             self.advance()
-            return {'type': 'Variable', 'name': token.value}
+
+            if self.current_token() and self.current_token().type == 'LBRACKET':
+                self.advance()
+                index = self.parse_expression()
+                self.expect('RBRACKET')
+                return {'type': 'Index', 'object': {'type': 'Variable', 'name':name}, 'index': index}
+            else:
+                return {'type': 'Variable', 'name': name}
         elif token.type == 'LPAREN':
             self.advance()
             expr = self.parse_expression()
@@ -495,6 +469,28 @@ class Parser:
         elif token.type == 'FALSE':
             self.advance()
             return {'type': 'Boolean', 'value': False}
+        elif token.type == 'LBRACKET':
+            self.advance()
+            elements = []
+            if self.current_token() and self.current_token().type != 'RBRACKET':
+                elements.append(self.parse_expression())
+                while self.current_token() and self.current_token().type == 'COMMA':
+                    self.advance()
+                    elements.append(self.parse_expression())
+            self.expect('RBRACKET')
+            return {'type': 'List', 'elements': elements}
+        elif token.type == 'RANGE':
+            self.advance()
+            self.expect('LPAREN')
+
+            args = []
+            if self.current_token() and self.current_token().type != 'RPAREN':
+                args.append(self.parse_expression())
+                while self.current_token() and self.current_token().type == 'COMMA':
+                    self.advance()
+                    args.append(self.parse_expression())
+            self.expect('RPAREN')
+            return {'type': 'Range', 'args': args}
         else:
             raise SPLError(f"Unexpected token: {token.type}")
     
@@ -607,21 +603,41 @@ class Interpreter:
         return None
 
     def visit_For(self, node):
-        start = int(self.interpret(node['start']))
-        end = int(self.interpret(node['end']))
-        step = int(self.interpret(node['step']))
+        iterable_value = self.interpret(node['iterable'])
 
         result = None
         try:
-            for i in range(start, end, step):
-                self.variables[node['var_name']] = i
-
-                for stmt in node['body']:
-                    result = self.interpret(stmt)
+            if isinstance(iterable_value, list):
+                for item in iterable_value:
+                    self.variables[node['var_name']] = item
+                    for stmt in node['body']:
+                        result = self.interpret(stmt)
+            elif isinstance(iterable_value, dict) and iterable_value.get('type') == 'range':
+                start = int(iterable_value.get('start', 0))
+                end = int(iterable_value.get('end', 0))
+                step = int(iterable_value.get('step', 1))
+                for i in range(start, end, step):
+                    self.variables[node['var_name']] = i
+                    for stmt in node['body']:
+                        result = self.interpret(stmt)
+            else:
+                raise SPLError(f"Object is not iterable: {type(iterable_value)}")
         except BreakException:
             pass
         
         return result
+    
+    def visit_Range(self, node):
+        args = [self.interpret(arg) for arg in node['args']]
+
+        if len(args) == 1:
+            return {'type': 'range', 'start': 0, 'end': int(args[0]), 'step': 1}
+        elif len(args) == 2:
+            return {'type': 'range', 'start': int(args[0]), 'end': int(args[1]), 'step': 1}
+        elif len(args) == 3:
+            return {'type': 'range', 'start': int(args[0]), 'end': int(args[1]), 'step': int(args[2])}
+        else:
+            raise SPLError('range() takes 1 to 3 arguments')
 
     def visit_While(self, node):
         result = None
@@ -635,6 +651,24 @@ class Interpreter:
     
     def visit_Break(self, node):
         raise BreakException()
+    
+    def visit_List(self, node):
+        elements = []
+        for element in node['elements']:
+            elements.append(self.interpret(element))
+        return elements
+    
+    def visit_Index(self, node):
+        obj = self.interpret(node['object'])
+        index = int(self.interpret(node['index']))
+        
+        if isinstance(obj, list):
+            if 0 <= index < len(obj):
+                return obj[index]
+            else:
+                raise SPLError(f"List index out of range: {index}")
+        else:
+            raise SPLError(f"Object is not indexable: {type(obj)}")
 
 class BreakException(Exception):
     pass

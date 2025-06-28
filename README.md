@@ -7,13 +7,17 @@ A robust, browser-based online IDE for the Simple Programming Language (SPL), po
 ### Language Support
 - **Variables**: `x = 5`
 - **Arithmetic Operations**: `+`, `-`, `*`, `/` with parentheses support
-- **Comparisons**: `>`, `<`
+- **Comparisons**: `>`, `<`, `>=`, `<=`, `==`, `!=`
 - **Strings**: `"Hello World"`
+- **List**: `[1, 2, 3, 4]` with indexing `list[0]`
 - **Print Function**: `print("Hello", x)`
 - **Control Flow**: 
-  - `if`/`else` statements
-  - `while` loops
+  - `if`/`else` statements with `{}`
+  - `while` loops with `{}`
+  - `for` loops with `range()` and list iteration
+  - `break` statements
 - **Comments**: Lines starting with `#`
+- **Semicolons**: Required at the end of each statement
 
 ### IDE Features
 - **Code Editor**: Syntax highlighting with CodeMirror
@@ -36,22 +40,23 @@ A robust, browser-based online IDE for the Simple Programming Language (SPL), po
 
 ```spl
 # Variables and arithmetic
-x = 5
-y = 10
-result = x + y * 2
-print("Result:", result)
+x = 5;
+y = 10;
+result = x + y * 2;
+print("Result:", result);
 
 # Conditionals
-if result > 20:
+if result > 20{
     print("Result is large!")
-else:
+} else {
     print("Result is small")
-
+}
 # Loops
 counter = 1
-while counter <= 3:
+while counter <= 3{
     print("Count:", counter)
     counter = counter + 1
+}
 ```
 
 ## Deployment
