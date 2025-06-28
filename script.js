@@ -633,6 +633,19 @@ class Interpreter:
         except TypeError:
             raise SPLError(f"Wrong number of arguments for string.{method_name}")
 
+    def _call_list_static_method(self, method_name, args):
+        methods = {
+            'range': lambda start, end=None, step=1: list(range(start, end or start, step))
+            'fill': lambda count, value: [value] * int(count),
+            'emptty': lambda: [],
+            'from_string': lambda text: list(text)
+        }
+        
+        if method_name not in methods:
+            raise SPLError(f"List class has no static method '{method)name}'")
+        
+        return methods[method_name](*args)
+
     def _call_list_method(self, list_obj, method_name, args):
         method = {
             'length': lambda: len(list_obj),
