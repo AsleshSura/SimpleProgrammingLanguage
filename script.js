@@ -17,7 +17,9 @@ class Lexer:
     KEYWORDS = {
         'if': 'IF', 'else': 'ELSE', 'while': 'WHILE', 'print': 'PRINT',
         'break': 'BREAK', 'True': 'TRUE', 'False': 'FALSE',
-        'for': 'FOR', 'in': 'IN', 'range': 'RANGE'
+        'for': 'FOR', 'in': 'IN', 'range': 'RANGE',
+        'String': 'STRING_CLASS', 'list':'LIST_CLASS',
+        'Math': 'MATH_CLASS', 'Number': 'NUMBER_CLASS'
     }
     
     def __init__(self, text):
@@ -249,7 +251,28 @@ class Parser:
         body = self.parse_block()
 
         return {'type': 'For', 'var_name': var_name, 'iterable': iterable, 'body': body}
-        
+    
+    def parse_static_method(self, class_name):
+        self.advance()
+        method_name = self.current_token().value
+        self.advance()
+        self.expect('LPAREN')
+
+        args = []
+        if self.current_token() and self.current_token().type != 'RPAREN':
+            args.append(self.parse_expression())
+            while self.current_token() and self.current_token().type == "COMMA":
+                self.advance()
+                args.append(self.parse_expression())
+        self.expect('RPAREN')
+
+        return {
+            'type': 'StaticMethodCall',
+            'class': class_name,
+            'method': method_name,
+            'args': args
+        }
+
     def parse_while(self):
         self.advance()  # consume 'while'
         condition = self.parse_expression()
@@ -557,6 +580,35 @@ class Interpreter:
             return self._call_boolean_method(obj, method_name, args)
         else:
             raise SPLError(f"Object of type {type(obj)} has no methods")
+
+    def visit_StaticMethodCall(self, node):
+        class_name = node['class']
+        method_name = node['method']
+        args = [self.interpret(arg) for arg in node['args']]
+
+        if class_name == 'String':
+            return self.call_string_static_method(method_name, args)
+        elif class_name == 'List':
+            return self.call_list_static_method(method_name, args)
+        elif class_name == 'Math':
+            return self.call_math_static_method(method_name, args)
+        else:
+            raise SPLError(f"Unknown class: {class_name}")
+    
+    def _call_string_static_method(self, method_name, args):
+        methods = {
+            'fromcode': lambda code: chr(int(code)),
+            'join': lambda items, sep='': sep.join(str(x) for x in items),
+            'repeat': lambda text, count: str(text) * int(count)
+            'ascii_letters': lambda: string.ascii_letters,
+            'digits': lambda: string.digits
+            
+        }
+        
+        if method_name not in methods:
+            raise SPLError(f"String class has no static method '{method_name}'")
+        
+        return methods[method_name](*args)
 
     def _call_string_method(self, string_obj, method_name, args):
         methods = {
