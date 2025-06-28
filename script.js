@@ -536,7 +536,28 @@ class Interpreter:
         else:
             raise SPLError(f"Object of type {type(obj)} has no methods")
 
-    
+    def _call_string_method(self, string_obj, method_name, args):
+        methods = {
+            'length': lambda: len(string_obj),
+            'upper': lambda: string_obj.upper(),
+            'lower': lambda: string_obj.lower(),
+            'slice': lambda start, end=None: string_obj[start:end] if end else string_obj[start:],
+            'replace': lambda old, new: string_obj.replace(old, new),
+            'split': lambda sep=' ': string_obj.split(sep),
+            'strip': lambda: string_obj.strip(),
+            'startswith': lambda prefix: string_obj.startswith(prefix),
+            'endswith': lambda suffix: string_obj.endswith(suffix),
+            'find': lambda substring: string_obj.find(substring),
+            'contains': lambda substring: substring in string_obj 
+        }
+
+        if method_name not in methods:
+            raise SPLError(f"String has no method '{method_name}'")
+        
+        try:
+            return methods[method](*args)
+        except TypeError:
+            raise SPLError(f"Wrong number of arguments for string.{method_name}")
 
 
     def _execute_statements(self, statements):
