@@ -124,14 +124,36 @@ class Lexer:
                 tokens.append(Token('RPAREN', ')', self.line, self.col))
                 self.advance()
             elif self.current_char() == '=':
-                tokens.append(Token('ASSIGN', '=', self.line, self.col))
-                self.advance()
+                if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == '=':
+                    tokens.append(Token('EQ', '==', self.line, self.col))
+                    self.advance()
+                    self.advance()
+                else:
+                    tokens.append(Token('ASSIGN', '=', self.line, self.col))
+                    self.advance()
             elif self.current_char() == '>':
-                tokens.append(Token('GT', '>', self.line, self.col))
-                self.advance()
+                if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == '=':
+                    tokens.append(Token('GTE', '>=', self.line, self.col))
+                    self.advance()
+                    self.advance()
+                else:
+                    tokens.append(Token('GT', '>', self.line, self.col))
+                    self.advance()
             elif self.current_char() == '<':
-                tokens.append(Token('LT', '<', self.line, self.col))
-                self.advance()
+                if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == '=':
+                    tokens.append(Token('LTE', '<=', self.line, self.col))
+                    self.advance()
+                    self.advance()
+                else:
+                    tokens.append(Token('LT', '<', self.line, self.col))
+                    self.advance()
+            elif self.current_char() == '!':
+                if self.pos + 1 < len(self.text) and self.text[self.pos + 1] == '=':
+                    tokens.append(Token('NEQ', '!=', self.line, self.col))
+                    self.advance()
+                    self.advance()
+                else:
+                    raise SPLError(f"Unexpected character: {self.current_char()}")
             elif self.current_char() == ':':
                 tokens.append(Token('COLON', ':', self.line, self.col))
                 self.advance()
@@ -177,7 +199,10 @@ class Lexer:
             'if': 'IF',
             'else': 'ELSE',
             'while': 'WHILE',
-            'print': 'PRINT'
+            'print': 'PRINT',
+            'break': 'BREAK',
+            'True': 'TRUE',
+            'False': 'FALSE'
         }
         token_type = keywords.get(id_str, 'IDENTIFIER')
         return Token(token_type, id_str, self.line, start_col)
@@ -224,24 +249,29 @@ class Parser:
         return {'type': 'Program', 'statements': statements}
     
     def parse_statement(self):
-        token = self.current_token()
-        if not token:
+        if not self.current_token():
             return None
         
-        if token.type == 'PRINT':
+        token_type = self.current_token().type
+
+        if token_type == 'PRINT':
             return self.parse_print()
-        elif token.type == 'IDENTIFIER':
-            next_token = self.tokens[self.pos + 1] if self.pos + 1 < len(self.tokens) else None
-            if next_token and next_token.type == 'ASSIGN':
-                return self.parse_assignment()
-        elif token.type == 'IF':
+        elif token_type == 'IF':
             return self.parse_if()
-        elif token.type == 'WHILE':
+        elif token_type == 'WHILE':
             return self.parse_while()
-        
-        # Expression statement
-        return self.parse_expression()
+        elif token_type == 'BREAK':
+            return self.parse_break()
+        elif token_type == 'IDENTIFIER':
+            return self.parse_assignment()
+        else:
+            raise SPLError(f"Unexpected token: {token_type}")
     
+    def parse_break(self):
+        self.advance()
+        return {'type': 'Break'}
+
+
     def parse_print(self):
         self.advance()  # consume 'print'
         self.expect('LPAREN')
@@ -272,16 +302,7 @@ class Parser:
         while self.current_token() and self.current_token().type == 'NEWLINE':
             self.advance()
         
-        then_branch = []
-        while (self.current_token() and 
-               self.current_token().type not in ['ELSE', 'EOF'] and
-               not (self.current_token().type == 'IDENTIFIER' and self.current_token().value == 'else')):
-            if self.current_token().type == 'NEWLINE':
-                self.advance()
-                continue
-            stmt = self.parse_statement()
-            if stmt:
-                then_branch.append(stmt)
+        then_branch = self.parse_block()
         
         else_branch = []
         if self.current_token() and self.current_token().type == 'ELSE':
@@ -291,14 +312,7 @@ class Parser:
             while self.current_token() and self.current_token().type == 'NEWLINE':
                 self.advance()
             
-            while (self.current_token() and 
-                   self.current_token().type != 'EOF'):
-                if self.current_token().type == 'NEWLINE':
-                    self.advance()
-                    continue
-                stmt = self.parse_statement()
-                if stmt:
-                    else_branch.append(stmt)
+            else_branch = self.parse_block()
         
         return {'type': 'If', 'condition': condition, 'then_branch': then_branch, 'else_branch': else_branch}
     
@@ -310,18 +324,34 @@ class Parser:
         while self.current_token() and self.current_token().type == 'NEWLINE':
             self.advance()
         
-        body = []
-        while (self.current_token() and 
-               self.current_token().type != 'EOF'):
-            if self.current_token().type == 'NEWLINE':
-                self.advance()
-                continue
-            stmt = self.parse_statement()
-            if stmt:
-                body.append(stmt)
+        body = self.parse_block()
         
         return {'type': 'While', 'condition': condition, 'body': body}
     
+    def parse_block(self):
+        statements = []
+
+        while self.current_token() and self.current_token().type != 'EOF':
+            
+            if self.current_token().type == 'NEWLINE':
+                self.advance()
+                continue
+            
+            token_type = self.current_token().type
+
+            if token_type == 'ELSE':
+                break
+            
+            try:
+                stmt = self.parse_statement()
+                if stmt:
+                    statements.append(stmt)
+            except Exception as e:
+                break
+        return statements
+
+
+
     def parse_expression(self):
         left = self.parse_comparison()
         return left
@@ -380,6 +410,12 @@ class Parser:
             self.advance()
             operand = self.parse_primary()
             return {'type': 'UnaryOp', 'op': '-', 'operand': operand}
+        elif token.type == 'TRUE':
+            self.advance()
+            return {'type': 'Boolean', 'value': True}
+        elif token.type == 'FALSE':
+            self.advance()
+            return {'type': 'Boolean', 'value': False}
         else:
             raise SPLError(f"Unexpected token: {token.type}")
     
@@ -411,6 +447,9 @@ class Interpreter:
     
     def visit_Number(self, node):
         return node['value']
+
+    def visit_Boolean(self, node):
+        return node['value']    
     
     def visit_String(self, node):
         return node['value']
@@ -490,10 +529,20 @@ class Interpreter:
     
     def visit_While(self, node):
         result = None
-        while self.interpret(node['condition']):
-            for stmt in node['body']:
-                result = self.interpret(stmt)
+        try:
+            while self.interpret(node['condition']):
+                for stmt in node['body']:
+                    result = self.interpret(stmt)
+        except BreakException:
+            pass
         return result
+    
+    def visit_Break(self, node):
+        raise BreakException()
+
+class BreakException(Exception):
+    pass
+
 
 # Global interpreter instance
 global_interpreter = Interpreter()
@@ -608,10 +657,8 @@ json.dumps(result)
                     addOutput(line, "print");
                 });
             }
-            if (result.result !== null && result.output.length === 0) {
-                addOutput(`Result: ${result.result}`, "print");
-            }
-            if (result.output.length === 0 && result.result === null) {
+            
+            if (result.output.length === 0) {
                 addOutput("✓ Code executed successfully (no output)", "info");
             }
         }
