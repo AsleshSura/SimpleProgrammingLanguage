@@ -3,63 +3,65 @@ let codeEditor;
 
 // Sample code examples
 const examples = [
-    `x = 5
-print("Hello, World!")
-print("x =", x)`,
+    `x = 5;
+print("Hello, World!");
+print("x =", x);`,
 
     `# Basic arithmetic and variables
-x = 5
-y = 10
-result = x + y * 2
-print("Result:", result)
+x = 5;
+y = 10;
+result = x + y * 2;
+print("Result:", result);
 
 # String operations
-name = "World"
-print("Hello", name)`,
+name = "World";
+print("Hello", name);`,
 
     `# Conditional statements
-x = 15
+x = 15;
 
-if x > 10:
-    print("x is greater than 10")
-    print("Value of x:", x)
-else:
-    print("x is not greater than 10")`,
+if x > 10 {
+    print("x is greater than 10");
+    print("Value of x:", x);
+    } else {
+    print("x is not greater than 10");
+    }`,
 
     `# While loops
-counter = 1
-print("Counting to 5:")
+counter = 1;
+print("Counting to 5:");
 
-while counter <= 5:
-    print("Count:", counter)
-    counter = counter + 1
-
-print("Done counting!")`,
+while counter <= 5 {
+    print("Count:", counter);
+    counter = counter + 1;
+}
+print("Done counting!");`,
 
     `# Complex example
-print("=== SPL Demo ===")
+print("=== SPL Demo ===");
 
 # Variables
-a = 5
-b = 3
-print("a =", a)
-print("b =", b)
+a = 5;
+b = 3;
+print("a =", a);
+print("b =", b);
 
 # Arithmetic
-sum = a + b
-product = a * b
-print("Sum:", sum)
-print("Product:", product)
+sum = a + b;
+product = a * b;
+print("Sum:", sum);
+print("Product:", product);
 
 # Conditionals and loops
-if sum > 7:
-    print("Sum is greater than 7")
-    i = 1
-    while i <= 3:
-        print("Loop iteration:", i)
-        i = i + 1
-
-print("Program finished!")`
+if sum > 7 {
+    print("Sum is greater than 7");
+    i = 1;
+    while i <= 3{
+        print("Loop iteration:", i);
+        i = i + 1;
+    }
+}
+print("Program finished!");`
 ];
 
 // Simple SPL interpreter embedded as string
@@ -263,12 +265,17 @@ class Parser:
                 statements.append(stmt)
                 if self.current_token() and self.current_token().type == 'SEMICOLON':
                     self.advance()
-                else:
-                    next_pos = self.pos
-                    while next_pos < len(self.tokens) and self.tokens[next_pos].type == 'NEWLINE':
-                        next_pos += 1
-                    if next_pos < len(self.tokens) and self.tokens[next_pos].type != 'EOF':
+                elif self.current_token() and self.current_token().type == 'NEWLINE':
+                    while self.current_token() and self.current_token().type == 'NEWLINE':
+                        self.advance()
+                    if (self.current_token() and self.current_token().type not in ['EOF', 'RBRACE', 'ELSE', 'IF', 'WHILE', 'FOR', 'PRINT']):
                         self.expect('SEMICOLON')
+                elif not self.current_token() or self.current_token().type == 'EOF':
+                    pass
+                else:
+                    if (self.current_token() and self.current_token().type not in ['RBRACE', 'ELSE', 'EOF']):
+                        self.expect('SEMICOLON')
+
         return {'type': 'Program', 'statements': statements}
     
     def parse_statement(self):
@@ -392,7 +399,7 @@ class Parser:
                     while next_pos < len(self.tokens) and self.tokens[next_pos].type == 'NEWLINE':
                         next_pos += 1
                     if next_pos < len(self.tokens) and self.tokens[next_pos].type != 'RBRACE':
-                        self.expect('SEMICOLON)
+                        self.expect('SEMICOLON')
         self.expect('RBRACE')
         return statements
 
@@ -672,7 +679,6 @@ class Interpreter:
 
 class BreakException(Exception):
     pass
-
 
 # Global interpreter instance
 global_interpreter = Interpreter()
