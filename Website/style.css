@@ -1,0 +1,198 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: #ffffff;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+}
+
+.header p {
+    font-size: 1.2em;
+    opacity: .9;
+}
+
+.status {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.terminal {
+    background: #1a1a1a;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.terminal-header {
+    background-color: #2d2d2d;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.terminal-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.btn.red { background: #ff4f56;}
+.btn.yellow { background: #ffbd2e;}
+.btn.green { background: #27ca3f;}
+
+.terminal-title {
+    flex: 1;
+    text-align: center;
+    color: #ccc;
+    font-weight: bold;
+}
+
+.terminal-body {
+    padding: 20px;
+    min-height: 400px;
+    background: #000;
+}
+
+.output {
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.welcome-message {
+    color: #00ff00;
+    margin-bottom: 20px;
+}
+
+.example {
+    color: #ffff00;
+    margin-left: 20px;
+}
+
+.command-line {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+}
+
+.input-line {
+    display: flex;
+    align-items: center;
+    background: #111;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.prompt {
+    color: #00ff00;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.command-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    outline: none;
+}
+
+.command-input::placeholder{
+    color: #666;
+}
+
+.output-line {
+    color: #00ff00;
+    margin: 5px 0;
+}
+
+.error-line {
+    color: #ff4444;
+    margin: 5px 0;
+}
+
+.help-section {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.help-section h3 {
+    margin-bottom: 15px;
+    color: #ffff00;
+}
+
+.help-section ul{
+    list-style: none;
+    padding-left: 20px;
+}
+
+.help-section li {
+    margin: 8px 0;
+    position: relative;
+}
+
+.help-section li::before {
+    content: "▶";
+    color: #00ff00;
+    position: absolute;
+    left: -15px;
+}
+
+.help-section strong {
+    color: #ffff00;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .header h1 {
+        font-size: 2em;
+    }
+
+    .terminal-body {
+        padding: 15px;
+        min-height: 300px;
+    }
+
+    .command-input {
+        font-size: 16px;
+    }
+}

@@ -1,9 +1,60 @@
 <!DOCTYPE html>
 <html>
     <head>
-        
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Simple Programming Language - SPL CLI</title>
+        <link rel="stylesheet" href="style.css">
+        <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     </head>
     <body>
+            <div class="container">
+                <header class="header">
+                    <h1>Simple Programming Language</h1>
+                    <p>An online CLI for my Simple Programming Language</p>
+                    <div id="status" class="status">Loading Pyodide</div>
+                </header>
 
+                <div class="terminal">
+                    <div class="terminal-header">
+                        <span class="btn red"></span>
+                        <span class="btn yellow"></span>
+                        <span class="btn green"></span>
+                    </div>
+                    <div class="terminal-title">Terminal</div>
+                </div>
+
+                <div class="terminal-body">
+                    <div id="output" class="output">
+                        <div class="welcome-message">
+                            <p>Welcome to Simple Programming Language</p>
+                            <p>Try these examples:</p>
+                            <p class="example"> x = 5</p>
+                            <p class="example"> y = x + 3</p>
+                            <p class="example"> 2 + 3 * 4</p>
+                            <p class="example"> (x + y) * 2</p>
+                            <p>-----------------------------</p>
+                        </div>
+                    </div>
+                    <div class="input-line">
+                        <span class="prompt">>>></span>
+                        <input type="text" id="command-input" placeholder="Loading..." disabled autocomplete="off" spellcheck="false">
+                    </div>
+                </div>
+            </div>
+
+            <div class="help-section">
+                <h3>Supported Features:</h3>
+                <ul>
+                    <li><strong>Arithmetic:</strong> +, -, *, /, ()</li>
+                    <li><strong>Variables:</strong> x = 5</li>
+                    <li><strong>Comparisons:</strong> >,< </li>
+                    <li><strong>Strings:</strong> "hello world"</li>
+                    <li><strong>Control Flow:</strong> if x > 0: (basic)</li>
+                </ul>
+            </div>
+        </div>
+
+        <script src="script.js"></script>
     </body>
 </html>
