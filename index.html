@@ -3,60 +3,108 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Simple Programming Language - SPL CLI</title>
+        <title>Simple Programming Language - Online IDE</title>
         <link rel="stylesheet" href="style.css">
         <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
     </head>
     <body>
         <div class="container">
             <header class="header">
-                <h1>Simple Programming Language</h1>
-                <p>An online CLI for my Simple Programming Language</p>
+                <h1>Simple Programming Language - Online IDE</h1>
                 <div id="status" class="status">Loading Pyodide...</div>
+                <div class="toolbar">
+                    <button id="run-btn" class="btn-run" disabled>
+                        <span class="btn-icon">▶</span>
+                        Run Code
+                    </button>
+                    <button id="clear-btn" class="btn-clear">
+                        <span class="btn-icon">🗑</span>
+                        Clear Output
+                    </button>
+                    <button id="example-btn" class="btn-example">
+                        <span class="btn-icon">📝</span>
+                        Load Example
+                    </button>
+                </div>
             </header>
 
-            <div class="terminal">
-                <div class="terminal-header">
-                    <div class="terminal-buttons">
-                        <span class="btn red"></span>
-                        <span class="btn yellow"></span>
-                        <span class="btn green"></span>
+            <div class="ide-container">
+                <div class="editor-panel">
+                    <div class="panel-header">
+                        <h3>Code Editor</h3>
+                        <span class="panel-info">Write your SPL code here</span>
                     </div>
-                    <div class="terminal-title">Terminal</div>
+                    <div class="editor-container">
+                        <textarea id="code-editor" placeholder="# Write your Simple Programming Language code here
+# Examples:
+x = 5
+y = x + 3
+print(x + y)
+
+if x > 0:
+    print(&quot;x is positive&quot;)
+
+while x < 10:
+    x = x + 1
+    print(x)"></textarea>
+                    </div>
                 </div>
-                
-                <div class="terminal-body">
-                    <div id="output" class="output">
-                        <div class="welcome-message">
-                            <p>Welcome to Simple Programming Language</p>
-                            <p>Try these examples:</p>
-                            <p class="example"> x = 5</p>
-                            <p class="example"> y = x + 3</p>
-                            <p class="example"> 2 + 3 * 4</p>
-                            <p class="example"> (x + y) * 2</p>
-                            <p>-----------------------------</p>
-                        </div>
+
+                <div class="divider"></div>
+
+                <div class="output-panel">
+                    <div class="panel-header">
+                        <h3>Output</h3>
+                        <span class="panel-info">Program output appears here</span>
                     </div>
-                    <div class="input-line">
-                        <span class="prompt">>>> </span>
-                        <input type="text" id="command-input" class="command-input" placeholder="Loading..." disabled autocomplete="off" spellcheck="false">
+                    <div class="output-container">
+                        <div id="output" class="output">
+                            <div class="welcome-output">
+                                <p>🚀 Simple Programming Language IDE</p>
+                                <p>Write code on the left, click "Run Code" to execute.</p>
+                                <p>Supported features: variables, arithmetic, if/while statements, print function</p>
+                                <hr>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="help-section">
-                <h3>Supported Features:</h3>
-                <ul>
-                    <li><strong>Arithmetic:</strong> +, -, *, /, ()</li>
-                    <li><strong>Variables:</strong> x = 5</li>
-                    <li><strong>Comparisons:</strong> >, < </li>
-                    <li><strong>Strings:</strong> "hello world"</li>
-                    <li><strong>Control Flow:</strong> if x > 0: (basic)</li>
-                </ul>
+                <h3>Language Features:</h3>
+                <div class="features-grid">
+                    <div class="feature">
+                        <strong>Variables:</strong>
+                        <code>x = 5</code>
+                    </div>
+                    <div class="feature">
+                        <strong>Arithmetic:</strong>
+                        <code>x + y * 2</code>
+                    </div>
+                    <div class="feature">
+                        <strong>Print:</strong>
+                        <code>print("hello")</code>
+                    </div>
+                    <div class="feature">
+                        <strong>If statements:</strong>
+                        <code>if x > 0: ...</code>
+                    </div>
+                    <div class="feature">
+                        <strong>While loops:</strong>
+                        <code>while x < 10: ...</code>
+                    </div>
+                    <div class="feature">
+                        <strong>Strings:</strong>
+                        <code>"hello world"</code>
+                    </div>
+                </div>
             </div>
         </div>
 
         <script src="script.js"></script>
     </body>
-</html>
 </html>

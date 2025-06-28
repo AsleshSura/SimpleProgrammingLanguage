@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SPL Quick Test</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+</head>
+<body>
+    <h1>SPL Quick Test</h1>
+    <div id="output"></div>
+    <script>
+        async function testSPL() {
+            try {
+                console.log("Loading Pyodide...");
+                const pyodide = await loadPyodide();
+                console.log("Pyodide loaded!");
+                
+                // Simple test
+                const result = pyodide.runPython(`
+print("Python test successful!")
+"Python works"
+                `);
+                console.log("Simple Python test result:", result);
+                
+                document.getElementById('output').innerHTML = `
+                    <p>Pyodide loaded successfully!</p>
+                    <p>Python test result: ${result}</p>
+                `;
+                
+            } catch (error) {
+                console.error("Error:", error);
+                document.getElementById('output').innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+        
+        testSPL();
+    </script>
+</body>
+</html>

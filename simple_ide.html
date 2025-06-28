@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Simple Programming Language - Minimal IDE</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1e1e1e;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .ide-layout {
+            display: flex;
+            gap: 20px;
+            height: 500px;
+        }
+        .editor-panel, .output-panel {
+            flex: 1;
+            background: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 5px;
+        }
+        .panel-header {
+            background: #333;
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            font-weight: bold;
+        }
+        .editor-content, .output-content {
+            height: calc(100% - 40px);
+            padding: 10px;
+        }
+        #code-editor {
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            color: #f8f8f2;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: none;
+        }
+        #output {
+            height: 100%;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .btn-clear {
+            background: #f44336;
+        }
+        .btn-clear:hover {
+            background: #da190b;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #333;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .output-line {
+            color: #00ff00;
+            margin: 2px 0;
+        }
+        .error-line {
+            color: #ff4444;
+            margin: 2px 0;
+        }
+        .print-line {
+            color: #ffff00;
+            margin: 2px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Simple Programming Language - Minimal IDE</h1>
+            <div id="status" class="status">Loading...</div>
+        </div>
+
+        <div class="controls">
+            <button id="run-btn" class="btn" onclick="runCode()" disabled>Run Code</button>
+            <button id="clear-btn" class="btn btn-clear" onclick="clearOutput()">Clear Output</button>
+            <button id="example-btn" class="btn" onclick="loadExample()">Load Example</button>
+        </div>
+
+        <div class="ide-layout">
+            <div class="editor-panel">
+                <div class="panel-header">Code Editor</div>
+                <div class="editor-content">
+                    <textarea id="code-editor" placeholder="Enter your code here...">x = 5
+y = 10
+print(x + y)</textarea>
+                </div>
+            </div>
+
+            <div class="output-panel">
+                <div class="panel-header">Output</div>
+                <div class="output-content">
+                    <div id="output">Ready to run code...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pyodide;
+        let interpreter;
+
+        // Simple language implementation
+        const languageCode = `
+class SimpleInterpreter:
+    def __init__(self):
+        self.variables = {}
+        self.output = []
+    
+    def run(self, code):
+        self.output = []
+        lines = code.strip().split('\\n')
+        
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+                
+            try:
+                if '=' in line and not any(op in line.split('=')[0] for op in ['>', '<', '==']):
+                    # Assignment
+                    parts = line.split('=', 1)
+                    var_name = parts[0].strip()
+                    expression = parts[1].strip()
+                    value = self.evaluate(expression)
+                    self.variables[var_name] = value
+                    
+                elif line.startswith('print(') and line.endswith(')'):
+                    # Print statement
+                    content = line[6:-1]  # Remove 'print(' and ')'
+                    if content.startswith('"') and content.endswith('"'):
+                        # String literal
+                        self.output.append(content[1:-1])
+                    else:
+                        # Expression or variable
+                        result = self.evaluate(content)
+                        self.output.append(str(result))
+                else:
+                    # Expression evaluation
+                    result = self.evaluate(line)
+                    if result is not None:
+                        self.output.append(str(result))
+                        
+            except Exception as e:
+                self.output.append(f"Error: {str(e)}")
+                
+        return self.output
+    
+    def evaluate(self, expr):
+        expr = expr.strip()
+        
+        # Handle string literals
+        if expr.startswith('"') and expr.endswith('"'):
+            return expr[1:-1]
+            
+        # Handle numbers
+        try:
+            if '.' in expr:
+                return float(expr)
+            else:
+                return int(expr)
+        except ValueError:
+            pass
+            
+        # Handle variables
+        if expr in self.variables:
+            return self.variables[expr]
+            
+        # Handle simple arithmetic
+        if '+' in expr:
+            parts = expr.split('+')
+            if len(parts) == 2:
+                left = self.evaluate(parts[0].strip())
+                right = self.evaluate(parts[1].strip())
+                return left + right
+                
+        if '-' in expr:
+            parts = expr.split('-')
+            if len(parts) == 2:
+                left = self.evaluate(parts[0].strip())
+                right = self.evaluate(parts[1].strip())
+                return left - right
+                
+        if '*' in expr:
+            parts = expr.split('*')
+            if len(parts) == 2:
+                left = self.evaluate(parts[0].strip())
+                right = self.evaluate(parts[1].strip())
+                return left * right
+                
+        if '/' in expr:
+            parts = expr.split('/')
+            if len(parts) == 2:
+                left = self.evaluate(parts[0].strip())
+                right = self.evaluate(parts[1].strip())
+                return left / right
+                
+        raise ValueError(f"Cannot evaluate: {expr}")
+
+# Create global interpreter
+simple_interpreter = SimpleInterpreter()
+`;
+
+        async function initPyodide() {
+            try {
+                document.getElementById('status').textContent = 'Loading Pyodide...';
+                pyodide = await loadPyodide();
+                
+                document.getElementById('status').textContent = 'Loading language...';
+                pyodide.runPython(languageCode);
+                
+                document.getElementById('status').textContent = 'Ready!';
+                document.getElementById('status').style.color = '#00ff00';
+                document.getElementById('run-btn').disabled = false;
+                
+                return true;
+            } catch (error) {
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+                document.getElementById('status').style.color = '#ff4444';
+                return false;
+            }
+        }
+
+        function runCode() {
+            const code = document.getElementById('code-editor').value;
+            const outputDiv = document.getElementById('output');
+            
+            if (!code.trim()) {
+                outputDiv.innerHTML = '<div class="error-line">No code to run!</div>';
+                return;
+            }
+            
+            try {
+                // Execute the code
+                pyodide.globals.set('user_code', code);
+                const result = pyodide.runPython(`
+result = simple_interpreter.run(user_code)
+result
+                `);
+                
+                // Display output
+                if (result && result.length > 0) {
+                    let output = '';
+                    result.forEach(line => {
+                        if (line.startsWith('Error:')) {
+                            output += `<div class="error-line">${escapeHtml(line)}</div>`;
+                        } else {
+                            output += `<div class="print-line">${escapeHtml(line)}</div>`;
+                        }
+                    });
+                    outputDiv.innerHTML = output;
+                } else {
+                    outputDiv.innerHTML = '<div class="output-line">Code executed successfully (no output)</div>';
+                }
+                
+            } catch (error) {
+                outputDiv.innerHTML = `<div class="error-line">JavaScript Error: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = 'Output cleared...';
+        }
+
+        function loadExample() {
+            const examples = [
+                `x = 5
+y = 10
+print("Hello World")
+print(x + y)`,
+                `name = "Alice"
+age = 25
+print("Name: " + name)
+print("Age: " + str(age))`,
+                `a = 10
+b = 3
+print(a + b)
+print(a - b)
+print(a * b)
+print(a / b)`
+            ];
+            
+            const randomExample = examples[Math.floor(Math.random() * examples.length)];
+            document.getElementById('code-editor').value = randomExample;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initPyodide();
+            
+            // Add keyboard shortcut
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                    e.preventDefault();
+                    runCode();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
