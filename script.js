@@ -338,8 +338,30 @@ class Parser:
             else:
                 return {'type': 'Variable', 'name': name}
             
-            if self.current_token() and self.current_token().type == 'DOT':
-                return self.parse_method_call(name)
+            while self.current_token() and self.current_token().type == 'DOT':
+                self.advance()
+                method_name = self.current_token().value
+                self.advance()
+                self.expect('LPAREN')
+
+                args = []
+                if self.current_token() and self.current_token().type != 'RPAREN':
+                    args.append(self.parse_expression())
+                    while self.current_token() and self.current_token().type == 'COMMA':
+                        self.advance()
+                        args.appen(self.parse_expression())
+                self.expect('RPAREN')
+
+                result = {
+                    'type': 'MethodCall',
+                    'object': result,
+                    'method': method_name,
+                    'args': args
+                }
+            return result
+
+
+
         elif token.type == 'LPAREN':
             self.advance()
             expr = self.parse_expression()
