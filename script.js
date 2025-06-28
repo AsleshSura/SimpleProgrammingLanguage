@@ -11,7 +11,7 @@ class Lexer:
     OPERATORS = {
         '+': 'PLUS', '-': 'MINUS', '*': 'MULTIPLY', '/': 'DIVIDE',
         '(': 'LPAREN', ')': 'RPAREN', '[': 'LBRACKET', ']': 'RBRACKET',
-        '{': 'LBRACE', '}': 'RBRACE', ';': 'SEMICOLON', ',': 'COMMA'
+        '{': 'LBRACE', '}': 'RBRACE', ';': 'SEMICOLON', ',': 'COMMA', '.': 'DOT'
     }
     
     KEYWORDS = {
@@ -175,6 +175,28 @@ class Parser:
         else:
             raise SPLError(f"Unexpected token: {token_type}")
     
+    def parse_method_call(self, object_name):
+        self.advance()
+        method_name = self.current_token().value
+        self.advance()
+        self.expect('LPAREN')
+
+        args = []
+        if self.current_token() and self.current_token.type != 'RPAREN':
+            args.append(self.parse_expresion())
+            while self.current_token() and self.current_token().type == 'COMMA':
+                self.advance()
+                args.append(self.parse_expressions())
+        self.expect('RPAREN')
+
+        return {
+            'type': 'MethodCall',
+            'object': {'type': 'Variable', 'name': object_name},
+            'method': method_name,
+            'args': args
+        }
+
+
     def parse_break(self):
         self.advance()
         return {'type': 'Break'}
@@ -315,6 +337,9 @@ class Parser:
                 return {'type': 'Index', 'object': {'type': 'Variable', 'name': name}, 'index': index}
             else:
                 return {'type': 'Variable', 'name': name}
+            
+            if self.current_token() and self.current_token().type == 'DOT':
+                return self.parse_method_call(name)
         elif token.type == 'LPAREN':
             self.advance()
             expr = self.parse_expression()
@@ -377,7 +402,7 @@ class Interpreter:
     def visit_Number(self, node): return node['value']
     def visit_Boolean(self, node): return node['value']
     def visit_String(self, node): return node['value']
-    
+
     def visit_Break(self, node): raise BreakException()
     
     def visit_Variable(self, node):
@@ -495,6 +520,25 @@ class Interpreter:
         else:
             raise SPLError(f"Object is not indexable: {type(obj)}")
     
+    def visit_MethodCall(self, node):
+        obj = self.interpret(node['object'])
+        method_name = node['method']
+        args = [self.interpret(arg) for arg in node['args']]
+
+        if isinstance(obj, str):
+            return self._call_string_method(obj, method_name, args)
+        elif isinstance(obj, list):
+            return self._call_list_method(obj, method_name, args)
+        elif isinstance(obj, (int, float)):
+            return self._call_number_method(obj, method_name, args)
+        elif isinstance(obj, bool):
+            return self._call_boolean_method(obj, method_name, args)
+        else:
+            raise SPLError(f"Object of type {type(obj)} has no methods")
+
+    
+
+
     def _execute_statements(self, statements):
         result = None
         for stmt in statements:
