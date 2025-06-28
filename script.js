@@ -202,7 +202,10 @@ class Lexer:
             'print': 'PRINT',
             'break': 'BREAK',
             'True': 'TRUE',
-            'False': 'FALSE'
+            'False': 'FALSE',
+            'for': 'FOR',
+            'in': 'IN',
+            'range': 'RANGE'
         }
         token_type = keywords.get(id_str, 'IDENTIFIER')
         return Token(token_type, id_str, self.line, start_col)
@@ -260,6 +263,8 @@ class Parser:
             return self.parse_if()
         elif token_type == 'WHILE':
             return self.parse_while()
+        elif token_type == 'FOR':
+            return self.parse_for()
         elif token_type == 'BREAK':
             return self.parse_break()
         elif token_type == 'IDENTIFIER':
@@ -270,7 +275,6 @@ class Parser:
     def parse_break(self):
         self.advance()
         return {'type': 'Break'}
-
 
     def parse_print(self):
         self.advance()  # consume 'print'
@@ -315,7 +319,59 @@ class Parser:
             else_branch = self.parse_block()
         
         return {'type': 'If', 'condition': condition, 'then_branch': then_branch, 'else_branch': else_branch}
-    
+
+    def parse_for(self):
+        self.advance()
+
+        if not self.current_token() or self.current_token().type != 'INDENTIFIER':
+            raise SPLError("Expected variable name after 'for'")
+        var_name = self.current_token().value
+        self.advance()
+
+        self.expect('IN')
+
+        self.expect('RANGE')
+
+        self.expect('LPAREN')
+
+        start = 0
+        end = None
+        step = 1
+
+        first_arg = self.parse_expression()
+
+        if self.current_token() and self.current_token().type == 'COMMA':
+            start_expr = first_arg
+            self.advance()
+            send = self.parse_expression()
+
+            if self.current_token() and self.current_token().type == 'COMMA':
+                self.advance()
+                step_expr = self.parse_expressions()
+            else:
+                step_expr = {'type': 'Number', 'value': 1}
+        else:
+            start_expr = {'type': 'Number', 'value': 0}
+            end = first_arg
+            step_expr = {'type': 'Number', 'value': 1}
+        
+        self.expect('RPAREN')
+        self.expect('COLON')
+
+        while self.current_token() and self.current_token().type == 'NEWLINE':
+            self.advance()
+        
+        body = self.parse_block()
+
+        return {
+            'type': 'For',
+            'var_name': var_name,
+            'start': start_expr,
+            'end': end,
+            'step': step_expr,
+            'body': body
+        }
+        
     def parse_while(self):
         self.advance()  # consume 'while'
         condition = self.parse_expression()
@@ -526,7 +582,24 @@ class Interpreter:
                 result = self.interpret(stmt)
             return result
         return None
-    
+
+    def visit_For(self, node):
+        start = int(self.interpret(node['start']))
+        end = int(self.interpret(node['end']))
+        step = int(self.interpret(node['step']))
+
+        result = None
+        try:
+            for i in range(start, end, step):
+                self.variables[node['var_name']] = i
+
+                for stmt in node['body']:
+                    result = self.interpret(stmt)
+        except BreakException:
+            pass
+        
+        return result
+
     def visit_While(self, node):
         result = None
         try:
