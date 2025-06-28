@@ -197,6 +197,8 @@ class Lexer:
         
         return Token('STRING', string_val, self.line, start_col)
 
+
+
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -327,7 +329,7 @@ class Parser:
     def parse_comparison(self):
         left = self.parse_term()
         
-        while self.current_token() and self.current_token().type in ['GT', 'LT']:
+        while self.current_token() and self.current_token().type in ['GT', 'LT', 'GTE', 'LTE', 'EQ', 'NEQ']:
             op = self.current_token().value
             self.advance()
             right = self.parse_term()
@@ -439,6 +441,14 @@ class Interpreter:
             return left > right
         elif op == '<':
             return left < right
+        elif op == '>=':
+            return left >= right
+        elif op == '<=':
+            return left <= right
+        elif op == '==':
+            return left == right
+        elif op == '!=':
+            return left != right
         else:
             raise SPLError(f"Unknown operator: {op}")
     
